@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة العمل الحر</title>
+  <meta name="description" content="موقع خاص بالمبرمجين يمكنك تقديم او طلب خدمة">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      direction: rtl;
+      background-color: #f5f6fa;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #4a90e2;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.5rem;
+    }
+    main {
+      flex-grow: 1;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .username-box, .post-form, #searchBar {
+      margin-bottom: 1.5rem;
+    }
+    .username-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .username-box span {
+      font-weight: bold;
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #4a90e2;
+      color: white;
+      font-size: 1rem;
+    }
+    .post {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      padding: 1rem;
+    }
+    .post-header {
+      font-weight: bold;
+      color: #4a90e2;
+      margin-bottom: 0.5rem;
+    }
+    .post-content {
+      margin-bottom: 1rem;
+    }
+    .post-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .comments-section {
+      border-top: 1px solid #ccc;
+      padding-top: 1rem;
+    }
+    .comment {
+      background-color: #eef3fc;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .comment .username {
+      font-weight: bold;
+      color: #357ab8;
+      margin-left: 0.5rem;
+    }
+    .add-comment {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    #chatRoom {
+      display: none;
+      flex-direction: column;
+      max-width: 800px;
+      margin: auto;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      height: 80vh;
+      overflow: hidden;
+    }
+    #chatHeader {
+      background-color: #4a90e2;
+      color: white;
+      padding: 1rem;
+      font-size: 1.2rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    #messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background-color: #f0f2f5;
+    }
+    .message {
+      background-color: #e1f0ff;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      margin-bottom: 0.6rem;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .message .username {
+      font-weight: bold;
+      color: #357ab8;
+      margin-left: 0.5rem;
+    }
+    #input-area {
+      display: flex;
+      padding: 1rem;
+      background-color: white;
+      border-top: 1px solid #ccc;
+    }
+    #input-area input {
+      flex-grow: 1;
+      margin-left: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>منصة العمل الحر</header>
+  <main id="mainContent">
+    <div class="username-box">
+      <span>اسم المستخدم: <span id="currentUsername"></span></span>
+      <button onclick="changeUsername()">تغيير الاسم</button>
+    </div>
+    <div class="post-form">
+      <textarea id="postContent" rows="4" placeholder="اكتب طلب خدمة أو عرض..."></textarea>
+      <button onclick="createPost()">نشر</button>
+    </div>
+    <input type="text" id="searchBar" placeholder="ابحث..." oninput="filterPosts()" />
+    <div id="posts"></div>
+  </main>
+  <section id="chatRoom">
+    <div id="chatHeader">
+      <span id="chatTitle"></span>
+      <button onclick="closeChat()">خروج</button>
+    </div>
+    <div id="messages"></div>
+    <div id="input-area">
+      <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+      <button onclick="sendMessage()">إرسال</button>
+    </div>
+  </section>
+  <script>
+    const adjectives = ['غامض','سريع','ذكي','مبدع','هادئ','شجاع','مبتكر'];
+    const nouns = ['مبرمج','مطور','مستخدم','محترف','مهووس','خارق','مغامر'];
+    let usedUsernames = new Set();
+    let currentUsername = localStorage.getItem('username') || generateRandomUsername();
+    localStorage.setItem('username', currentUsername);
+    document.getElementById('currentUsername').textContent = currentUsername;
+    function generateRandomUsername() {
+      let name;
+      do {
+        name = adjectives[Math.floor(Math.random() * adjectives.length)] +
+               nouns[Math.floor(Math.random() * nouns.length)] +
+               Math.floor(Math.random() * 1000);
+      } while (usedUsernames.has(name));
+      usedUsernames.add(name);
+      return name;
+    }
+    function changeUsername() {
+      const newName = prompt("أدخل اسم جديد:", currentUsername);
+      if (newName && newName.length >= 3 && !usedUsernames.has(newName)) {
+        currentUsername = newName;
+        localStorage.setItem('username', newName);
+        document.getElementById('currentUsername').textContent = newName;
+      } else {
+        alert("الاسم غير صالح أو مستخدم!");
+      }
+    }
+
+    let posts = JSON.parse(localStorage.getItem('posts')) || [];
+    function savePosts() {
+      localStorage.setItem('posts', JSON.stringify(posts));
+    }
+
+    function createPost() {
+      const content = document.getElementById('postContent').value.trim();
+      if (content.length < 3) return alert('قصير جداً!');
+      posts.unshift({ id: Date.now(), username: currentUsername, content, likes: 0, likedBy: [], comments: [] });
+      document.getElementById('postContent').value = '';
+      savePosts();
+      renderPosts();
+    }
+    function renderPosts() {
+      const container = document.getElementById('posts');
+      container.innerHTML = '';
+      posts.forEach(post => {
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+          <div class="post-header">${post.username}</div>
+          <div class="post-content">${escapeHtml(post.content)}</div>
+          <div class="post-actions">
+            <button ${post.likedBy.includes(currentUsername) ? 'disabled' : ''} onclick="likePost(${post.id})">إعجاب (${post.likes})</button>
+            <button onclick="openChat('${post.username}')">دردشة مع ${post.username}</button>
+          </div>
+          <div class="comments-section" id="comments-${post.id}">
+            ${post.comments.map(c => `<div class="comment"><span class="username">${c.username}:</span> ${escapeHtml(c.text)}</div>`).join('')}
+            <div class="add-comment">
+              <input id="comment-input-${post.id}" type="text" placeholder="أضف تعليقًا..." />
+              <button onclick="addComment(${post.id})">تعليق</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    function likePost(id) {
+      const post = posts.find(p => p.id === id);
+      if (post && !post.likedBy.includes(currentUsername)) {
+        post.likes++;
+        post.likedBy.push(currentUsername);
+        savePosts();
+        renderPosts();
+      }
+    }
+    function addComment(id) {
+      const input = document.getElementById(`comment-input-${id}`);
+      const text = input.value.trim();
+      if (!text) return;
+      const post = posts.find(p => p.id === id);
+      post.comments.push({ username: currentUsername, text });
+      input.value = '';
+      savePosts();
+      renderPosts();
+    }
+    function filterPosts() {
+      const q = document.getElementById('searchBar').value.toLowerCase();
+      document.getElementById('posts').innerHTML = '';
+      posts.filter(p => p.content.toLowerCase().includes(q)).forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+          <div class="post-header">${p.username}</div>
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-actions">
+            <button ${p.likedBy.includes(currentUsername) ? 'disabled' : ''} onclick="likePost(${p.id})">إعجاب (${p.likes})</button>
+            <button onclick="openChat('${p.username}')">دردشة</button>
+          </div>
+        `;
+        document.getElementById('posts').appendChild(div);
+      });
+    }
+    let currentChatUser = null;
+    let messages = {};
+    function openChat(username) {
+      currentChatUser = username;
+      document.getElementById('chatTitle').textContent = 'الدردشة مع ' + username;
+      document.getElementById('mainContent').style.display = 'none';
+      document.getElementById('chatRoom').style.display = 'flex';
+      loadMessages();
+    }
+    function closeChat() {
+      currentChatUser = null;
+      document.getElementById('mainContent').style.display = 'block';
+      document.getElementById('chatRoom').style.display = 'none';
+    }
+    function loadMessages() {
+      const container = document.getElementById('messages');
+      container.innerHTML = '';
+      const chat = messages[currentChatUser] || [];
+      chat.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.innerHTML = `<span class="username">${msg.username}:</span> ${escapeHtml(msg.text)}`;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      if (!messages[currentChatUser]) messages[currentChatUser] = [];
+      messages[currentChatUser].push({ username: currentUsername, text });
+      input.value = '';
+      loadMessages();
+    }
+    renderPosts();
+  </script>
+</body>
+</html>
